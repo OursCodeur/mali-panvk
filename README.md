@@ -1,7 +1,7 @@
 This branch targets the RG35XX Pro's Mali-G31 on Linux kbase UK 11.17.
 Read [RG35XX build and test notes](RG35XX.md) before using it. It remains
 experimental: a complete interior renders through Vulkan 1.3, and controls
-and audio are confirmed. Exterior loading remains blocked by a device stall.
+and audio are confirmed. Exterior attempts still hit the physical-memory guard.
 The Android instructions below describe upstream; this branch's job ABI has
 not been tested on those phones.
 

@@ -12,8 +12,10 @@ The driver reports Vulkan 1.3.358. Unchanged OpenMW Clockwork alpha
 interior on the Mali-G31, including its walls, floor and ceiling. Engine and
 physical framebuffer captures confirm the room geometry. The owner confirmed
 controls and audio in a subsequent interior run, which exited normally.
-An exterior load still made SSH unresponsive while the device answered pings.
-The 300-second guardian did not recover access. The cause remains unconfirmed.
+The delayed exterior guardian eventually recovered the device without a
+restart. Subsequent exterior attempts stopped at the physical-memory guard.
+No exterior run has passed acceptance, and the normal launcher still starts
+the installed OpenGL build.
 
 | Check | Result |
 |---|---|
@@ -27,16 +29,55 @@ The 300-second guardian did not recover access. The cause remains unconfirmed.
 | Instance divisors zero, one and three | Passed |
 | Clockwork Vulkan 1.3 interior, 640x480 | Correct room captured; normal exit |
 | Physical controls and audio | Confirmed by the owner |
-| Clockwork exterior | Loading stalled; guardian did not recover SSH |
+| Clockwork exterior | Physical-memory guard stops loading; no accepted run |
 | Vulkan CTS, other GPUs and newer kbase ABIs | Not tested |
 
 These focused checks do not establish Vulkan conformance or sustained gameplay
 across scenes. The verified interior used temporary swap and VM reclaim
-settings; the launcher restored those VM settings at exit. Memory pressure
-still needs evaluation beyond this interior.
+settings. The successful interior launcher restored those VM settings at
+exit. Forced termination during an exterior test required manual framebuffer
+and menu restoration.
 
 The tested ARM64 driver binary has SHA-256
 `c039e0c83012a4a8c27c9559c2dfc281f59d2561bffecc5ecbbc734761cb4638`.
+
+## Memory and recovery
+
+The exterior attempt with 512 MiB swap exhausted that swapfile. Its guardian
+stopped the game after 366.8 seconds, following a 96.5-second gap in diagnostic
+samples. SSH and the firmware menu recovered without a restart.
+
+An independent C watchdog now locks its address space into RAM. It checks
+`/proc/meminfo` and sends stop signals without waiting for GPU debug reads or
+SD-card writes. The runtime has an extra temporary 256 MiB swapfile, for
+768 MiB total.
+The watchdog and swapfiles do not change this driver's code or the boot setup.
+
+Reducing the reclaim reserve still let the next exterior attempt reach the
+physical-memory guard. Another attempt with 768 MiB swap also hit that guard,
+with about 290 MiB swap still free and 467.12 MiB of Mali allocations. More
+swap alone has not produced an accepted exterior. The stock launcher remains
+unchanged.
+
+An interior capture with PNG dumping disabled recorded:
+
+| Counter | MiB |
+|---|---:|
+| Ordinary process resident pages | 247.30 |
+| Process swap | 289.96 |
+| Mali committed pages | 367.24 |
+
+These counters measure different memory classes. The Mali counter is not a
+measure of ordinary process residency. GPU clocks varied between 420 and
+648 MHz; the capture does not support a fixed-clock utilization claim.
+The driver still provides no valid Vulkan timestamps for per-pass timing.
+
+The Clockwork results above use alpha
+`36c2976862455de30daf952170b03bb8234e8a65`. The owner approved a separate
+renderer memory patch against development commit
+`84de784caf8c421f0ba18954de3af3536fa3c83c`. That newer baseline needs its own
+validation; the results above do not describe it. The renderer patch is
+separate from this driver fork.
 
 ## Changes
 
