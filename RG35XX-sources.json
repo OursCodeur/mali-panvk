@@ -1,0 +1,61 @@
+{
+  "base": {
+    "repository": "https://github.com/JimVulkan/mali-panvk",
+    "commit": "fb3b49d016544c19d83e558462f2d29470e77c28"
+  },
+  "imports": [
+    {
+      "repository": "https://gitlab.freedesktop.org/mesa/mesa",
+      "mirror": "https://github.com/chaotic-cx/mesa-mirror",
+      "commit": "e7959c6009d85d278585b2896495b2b3046d461b",
+      "files": [
+        {
+          "path": "src/loader/loader.c",
+          "sha": "0bbccbf5b239c8864eca5bd07594981e620a1eb7"
+        },
+        {
+          "path": "src/loader/loader.h",
+          "sha": "6748cb5269d8a9ed8dffcdb37ba6f4d9d8897f32"
+        },
+        {
+          "path": "src/loader/loader_dri_helper.c",
+          "sha": "5d6a3dddc7524bb5a42a847c78f88c09a01fd2d3"
+        },
+        {
+          "path": "src/loader/loader_dri_helper.h",
+          "sha": "c77b08ae6cc7db3914146661a42c5e39b6e518c6"
+        },
+        {
+          "path": "src/loader/loader_dri_helper_screen.h",
+          "sha": "290e8dd111c5dacdcf4a2d3b6a85787c0c7d71b9"
+        },
+        {
+          "path": "src/loader/loader_wayland_helper.c",
+          "sha": "4c420c589c44ed063e75ef6e5cd6e805e71a22f9"
+        },
+        {
+          "path": "src/loader/loader_wayland_helper.h",
+          "sha": "657582f61b9eb43b00c75d26543afaab026092db"
+        },
+        {
+          "path": "src/loader/meson.build",
+          "sha": "a8603ad5767ccfac45797bc88b1fba00c56b03a4"
+        },
+        {
+          "path": "src/loader/pci_id_driver_map.h",
+          "sha": "38c9b97f45b6f49a543755905add39beb028a1d4"
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/KhronosGroup/Vulkan-Headers",
+      "tag": "v1.4.358",
+      "files": [
+        {
+          "path": "include/vulkan/vulkan_wayland.h",
+          "sha": "16645625f1a5066360022abfa201c29a47e90d20"
+        }
+      ]
+    }
+  ]
+}

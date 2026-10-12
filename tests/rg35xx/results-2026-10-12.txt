@@ -1,0 +1,36 @@
+MESA: info: panvk_debug: startup
+MESA: info: Created an instance
+MESA: info: kbase: looking for /dev/mali0
+MESA: info: Found compatible device '/dev/mali0'.
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+MESA: info: panvk (Mali-G31 MC1) Mesa 26.3.0-devel
+MESA: info: kbase: physical device created
+Device: Mali-G31 MC1; group 512 x 1
+Pipeline compiled
+Pass 0: 1024 invocations checked, 0 cumulative errors
+Pass 1: 1024 invocations checked, 0 cumulative errors
+MESA: info: panvk_debug: startup
+MESA: info: Created an instance
+MESA: info: kbase: looking for /dev/mali0
+MESA: info: Found compatible device '/dev/mali0'.
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+MESA: info: panvk (Mali-G31 MC1) Mesa 26.3.0-devel
+Device: Mali-G31 MC1; group 512 x 1
+MESA: info: kbase: physical device created
+Pipeline compiled
+Pass 0: 1024 invocations checked, 0 cumulative errors
+Pass 1: 1024 invocations checked, 0 cumulative errors
+MESA: info: panvk_debug: startup
+MESA: info: Created an instance
+MESA: info: kbase: looking for /dev/mali0
+MESA: info: Found compatible device '/dev/mali0'.
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+MESA: info: panvk (Mali-G31 MC1) Mesa 26.3.0-devel
+Device: Mali-G31 MC1; group 16 x 32
+MESA: info: kbase: physical device created
+Pipeline compiled
+Pass 0: 1024 invocations checked, 0 cumulative errors
+Pass 1: 1024 invocations checked, 0 cumulative errors
