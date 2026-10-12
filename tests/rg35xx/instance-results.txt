@@ -1,0 +1,191 @@
+CASE 0 False 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 False 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 False -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 False 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 True 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 True 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 True -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 0 True 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 False 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 False 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 False -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 False 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 True 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 True 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 True -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 1 True 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 False 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 False 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 False -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 False 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 True 0 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 True 25601 0 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 True -513 513 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+
+CASE 3 True 25601 37 EXIT 0
+MESA: warning: panvk is not well-tested on v7 -- continuing anyway
+WARNING: panvk is not a conformant Vulkan implementation, testing use only.
+Device: Mali-G31 MC1; descriptors 16382/16383
+Depth format 126, separate prepass, equal comparison
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors

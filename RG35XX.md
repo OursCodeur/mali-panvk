@@ -8,37 +8,47 @@ on 2026-10-12 has Linux 4.9.170, Ubuntu 22.04 ARM64, 973 MiB RAM and
 ## Status
 
 The driver reports Vulkan 1.3.358. Unchanged OpenMW Clockwork alpha
-`36c2976862455de30daf952170b03bb8234e8a65` rendered and captured its menu through
-Vulkan 1.3 on the Mali-G31, then exited successfully. Its capture metadata
-reported no renderer fallback. The handheld also displayed the loading screen.
-A complete 3D scene has not been verified.
+`36c2976862455de30daf952170b03bb8234e8a65` renders the Census and Excise Office
+interior on the Mali-G31, including its walls, floor and ceiling. Engine and
+physical framebuffer captures confirm the room geometry. The owner confirmed
+controls and audio in a subsequent interior run, which exited normally.
+An exterior load still made SSH unresponsive while the device answered pings.
+The 300-second guardian did not recover access. The cause remains unconfirmed.
 
 | Check | Result |
 |---|---|
-| 32768-slot descriptor layout, sampled indices 16383 and 16384 | Passed |
+| 16384-slot descriptor layout, sampled indices 16382 and 16383 | Passed |
 | Partially bound arrays and updates after command recording | Passed |
 | Descriptor updates between submissions of the same command buffer | Passed |
 | Logical 512x1 and 16x32 workgroups, two groups per dispatch | Passed |
 | Shared-memory reduction with multiple barriers | Passed |
 | Dynamic rendering clear/readback, 640x480, AFBC disabled | Zero pixel errors |
-| Clockwork Vulkan 1.3 menu, 640x480 | Captured successfully |
-| Clockwork exterior load | Did not complete; device required restart |
-| Guarded interior load | Stopped below the RAM threshold; menu and SSH recovered |
+| Direct and indirect indexed draws with instanced attributes | 24 cases; 98,304 pixels; zero errors |
+| Instance divisors zero, one and three | Passed |
+| Clockwork Vulkan 1.3 interior, 640x480 | Correct room captured; normal exit |
+| Physical controls and audio | Confirmed by the owner |
+| Clockwork exterior | Loading stalled; guardian did not recover SSH |
 | Vulkan CTS, other GPUs and newer kbase ABIs | Not tested |
 
-The exterior failure's cause is unconfirmed. The saved kernel log did not
-establish an OOM kill or GPU fault. Successful menu rendering and these focused
-checks do not establish Vulkan conformance or stable gameplay.
+These focused checks do not establish Vulkan conformance or sustained gameplay
+across scenes. The verified interior used temporary swap and VM reclaim
+settings; the launcher restored those VM settings at exit. Memory pressure
+still needs evaluation beyond this interior.
 
-A later interior attempt with 512 MiB of temporary swap reached only the
-"Uploading Scene" screen. A memory guard stopped it after 37 seconds when
-`MemAvailable` reached 94 MiB; kbase reported about 403 MiB of GPU allocations.
-The guard restored the firmware menu and SSH remained usable. This establishes
-a memory constraint during that attempt, without identifying the original
-exterior failure.
+The tested ARM64 driver binary has SHA-256
+`c039e0c83012a4a8c27c9559c2dfc281f59d2561bffecc5ecbbc734761cb4638`.
 
 ## Changes
 
+- Limit per-stage sampled-image and sampler tables to 16384 entries. Alpha
+  accepts this limit and uses a 16326-entry array. Its saved pipeline cache is
+  24 MiB, within the existing 32 MiB cap on this device.
+- Initialize the optional fragment descriptor-copy job before preparing a
+  tiler job. Depth-only command-buffer resubmission no longer consumes an
+  uninitialized pointer.
+- Cancel the indexed vertex offset when fetching instanced attributes in
+  direct draws and indirect helper jobs. Apply the correction for multiple
+  instances with nonzero divisors; zero-divisor attributes remain constant.
 - Use the 48-byte job atom required by the tested kbase UK 11.17 interface.
   This replaces upstream's 64-byte layout; newer Android kernels are untested.
 - Use four-lane subgroups and the older lane-permute instruction on the G31.
@@ -155,8 +165,8 @@ measurements. This repository does not install the compositor or replace
 firmware launchers.
 
 The tested driver reports a zero timestamp period. GPU timestamp profiling
-was unavailable in Clockwork. Its 42 MiB pipeline cache also exceeded alpha's
-32 MiB limit on this 1 GiB device; the driver test did not change alpha.
+was unavailable in Clockwork. The driver changes do not modify alpha's
+renderer, shaders or executable.
 
 ## Focused checks
 
@@ -185,8 +195,18 @@ On the target, with the ICD selected and AFBC disabled:
 ./vkgraphics 640 480
 ```
 
-Each compute check validates 1024 invocations twice. The recorded runs had
-zero errors; their output is in
-[results-2026-10-12.txt](tests/rg35xx/results-2026-10-12.txt). The checks reject
-a CPU Vulkan device. They do not cover dispatch-base offsets, every subgroup
-operation, every update-after-bind descriptor type or Vulkan CTS.
+Each compute check validates 1024 invocations twice. The 16384-slot runs had
+zero errors; their output is in [results-16k.txt](tests/rg35xx/results-16k.txt).
+[results-2026-10-12.txt](tests/rg35xx/results-2026-10-12.txt) records the earlier
+32768-slot configuration. The current sources use indices 16382 and 16383.
+
+The indexed-draw matrix covered direct and indirect submission, divisors zero,
+one and three, and four `(vertexOffset, minimumIndex)` pairs: `(0, 0)`,
+`(25601, 0)`, `(-513, 513)` and `(25601, 37)`. Each of its 24 cases submitted the
+command buffer twice and checked 2048 pixels per submission. All 98,304 pixel
+checks passed. The recorded output is in
+[instance-results.txt](tests/rg35xx/instance-results.txt); each `CASE` line lists
+the divisor, direct-draw flag, vertex offset, minimum index and exit status.
+
+The checks reject a CPU Vulkan device. They do not cover dispatch-base offsets,
+every subgroup operation, every update-after-bind descriptor type or Vulkan CTS.
