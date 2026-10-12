@@ -36,8 +36,8 @@ extern const struct vk_device_shader_ops panvk_per_arch(device_shader_ops);
  * where we're really limited to 256 on the shader side), but on Bifrost we
  * have to copy some tables around, which comes at an extra memory/processing
  * cost, so let's pick something smaller. */
-#define MAX_PER_STAGE_SAMPLED_IMAGES 256
-#define MAX_PER_STAGE_SAMPLERS 128
+#define MAX_PER_STAGE_SAMPLED_IMAGES 32768
+#define MAX_PER_STAGE_SAMPLERS 32768
 #define MAX_PER_STAGE_UNIFORM_BUFFERS MAX_PER_SET_UNIFORM_BUFFERS
 #define MAX_PER_STAGE_STORAGE_BUFFERS 64
 #define MAX_PER_STAGE_STORAGE_IMAGES 32

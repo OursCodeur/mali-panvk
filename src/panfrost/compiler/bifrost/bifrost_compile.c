@@ -2016,7 +2016,9 @@ bi_emit_intrinsic(bi_builder *b, nir_intrinsic_instr *instr)
       break;
 
    case nir_intrinsic_load_subgroup_invocation:
-      bi_mov_i32_to(b, dst, bi_fau(BIR_FAU_LANE_ID, false));
+      bi_lshift_and_i32_to(b, dst, bi_fau(BIR_FAU_LANE_ID, false),
+                          bi_imm_u32(pan_subgroup_size(b->shader->inputs->gpu_id) - 1),
+                          bi_imm_u8(0));
       break;
 
    case nir_intrinsic_cmat_muladd_pan: {
@@ -2046,8 +2048,19 @@ bi_emit_intrinsic(bi_builder *b, nir_intrinsic_instr *instr)
    case nir_intrinsic_ballot:
    case nir_intrinsic_ballot_relaxed: {
       assert(instr->src[0].ssa->bit_size == 32);
+      if (b->shader->quirks & BIFROST_LIMITED_CLPER) {
+         bi_index value = bi_icmp_i32(b, bi_src_index(&instr->src[0]),
+                                      bi_zero(), BI_CMPF_NE, BI_RESULT_TYPE_I1);
+         bi_index mask = bi_zero();
+         for (unsigned lane = 0; lane < 4; lane++) {
+            bi_index bit = bi_clper_old_i32(b, value, bi_imm_u8(lane));
+            mask = bi_lshift_or_i32(b, bit, mask, bi_imm_u8(lane));
+         }
+         bi_mov_i32_to(b, dst, mask);
+         break;
+      }
       enum bi_subgroup subgroup =
-         bi_subgroup_from_cluster_size(pan_subgroup_size(b->shader->arch));
+         bi_subgroup_from_cluster_size(pan_subgroup_size(b->shader->inputs->gpu_id));
       bi_wmask_to(b, dst, bi_src_index(&instr->src[0]), subgroup, 0);
       break;
    }
@@ -2057,11 +2070,15 @@ bi_emit_intrinsic(bi_builder *b, nir_intrinsic_instr *instr)
       enum bi_inactive_result inactive_result = BI_INACTIVE_RESULT_ZERO;
       enum bi_lane_op lane_op = BI_LANE_OP_NONE;
       enum bi_subgroup subgroup =
-         bi_subgroup_from_cluster_size(pan_subgroup_size(b->shader->arch));
-      bi_clper_i32_to(b, dst,
-                      bi_src_index(&instr->src[0]),
-                      bi_byte(bi_src_index(&instr->src[1]), 0),
-                      inactive_result, lane_op, subgroup);
+         bi_subgroup_from_cluster_size(pan_subgroup_size(b->shader->inputs->gpu_id));
+      if (b->shader->quirks & BIFROST_LIMITED_CLPER) {
+         bi_clper_old_i32_to(b, dst, bi_src_index(&instr->src[0]),
+                            bi_byte(bi_src_index(&instr->src[1]), 0));
+      } else {
+         bi_clper_i32_to(b, dst, bi_src_index(&instr->src[0]),
+                        bi_byte(bi_src_index(&instr->src[1]), 0),
+                        inactive_result, lane_op, subgroup);
+      }
       break;
    }
 

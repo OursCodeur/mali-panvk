@@ -1158,10 +1158,8 @@ struct kbase_jd_dependency {
    uint8_t dependency_type;
 };
 
-/* 64 bytes, which is exactly the stride the vendor passes. Every offset below was read out of a
- * captured atom, not out of a header. */
+/* UK v2 atoms retain compatibility with older job-manager kernels. */
 struct kbase_jd_atom {
-   uint64_t seq_nr;
    uint64_t jc;
    uint64_t udata[2];
    uint64_t extres_list;
@@ -1173,10 +1171,8 @@ struct kbase_jd_atom {
    uint8_t device_nr;
    uint8_t jobslot;
    uint32_t core_req;
-   uint8_t renderpass_id;
-   uint8_t padding[7];
 };
-static_assert(sizeof(struct kbase_jd_atom) == 64, "the captured stride is 64");
+static_assert(sizeof(struct kbase_jd_atom) == 48, "UK 11.17 atom size");
 
 /* 24 bytes, and the read that returned two of them for a two-atom frame returned exactly 48. */
 struct kbase_jd_event {

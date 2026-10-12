@@ -418,13 +418,13 @@ panvk_per_arch(get_physical_device_features)(
       .shaderUniformTexelBufferArrayNonUniformIndexing = true,
       .shaderStorageTexelBufferArrayNonUniformIndexing = true,
       .descriptorBindingUniformBufferUpdateAfterBind = PAN_ARCH >= 9,
-      .descriptorBindingSampledImageUpdateAfterBind = PAN_ARCH >= 9,
+      .descriptorBindingSampledImageUpdateAfterBind = true,
       .descriptorBindingStorageImageUpdateAfterBind = PAN_ARCH >= 9,
       .descriptorBindingStorageBufferUpdateAfterBind = PAN_ARCH >= 9,
       .descriptorBindingUniformTexelBufferUpdateAfterBind = PAN_ARCH >= 9,
       .descriptorBindingStorageTexelBufferUpdateAfterBind = PAN_ARCH >= 9,
-      .descriptorBindingUpdateUnusedWhilePending = PAN_ARCH >= 9,
-      .descriptorBindingPartiallyBound = PAN_ARCH >= 9,
+      .descriptorBindingUpdateUnusedWhilePending = true,
+      .descriptorBindingPartiallyBound = true,
       .descriptorBindingVariableDescriptorCount = true,
       .runtimeDescriptorArray = true,
       .samplerFilterMinmax = PAN_ARCH >= 10,
@@ -838,6 +838,10 @@ panvk_per_arch(get_physical_device_properties)(
    /* Ensure that the max threads count per workgroup is valid for Bifrost */
    assert(PAN_ARCH > 8 || device->kmod.dev->props.max_threads_per_wg <= 1024);
 
+   const uint32_t compute_group_limit = PAN_ARCH < 9
+      ? MAX2(512, device->kmod.dev->props.max_threads_per_wg)
+      : device->kmod.dev->props.max_threads_per_wg;
+
    float pointSizeRangeMin;
    float pointSizeRangeMax;
 
@@ -964,14 +968,10 @@ panvk_per_arch(get_physical_device_properties)(
        * dispatch in several jobs if it's too big.
        */
       .maxComputeWorkGroupCount = {65535, 65535, 65535},
-      /* We could also split into serveral jobs but this has many limitations.
-       * As such we limit to the max threads per workgroup supported by the GPU.
-       */
-      .maxComputeWorkGroupInvocations =
-         device->kmod.dev->props.max_threads_per_wg,
-      .maxComputeWorkGroupSize = {device->kmod.dev->props.max_threads_per_wg,
-                                  device->kmod.dev->props.max_threads_per_wg,
-                                  device->kmod.dev->props.max_threads_per_wg},
+      /* NIR lowers oversized groups while preserving logical invocations. */
+      .maxComputeWorkGroupInvocations = compute_group_limit,
+      .maxComputeWorkGroupSize = {compute_group_limit, compute_group_limit,
+                                 compute_group_limit},
       /* 8-bit subpixel precision. */
       .subPixelPrecisionBits = 8,
       .subTexelPrecisionBits = 8,
@@ -1043,7 +1043,7 @@ panvk_per_arch(get_physical_device_properties)(
       .sparseResidencyStandard3DBlockShape = false,
 
       /* Vulkan 1.1 properties */
-      .subgroupSize = pan_subgroup_size(PAN_ARCH),
+      .subgroupSize = pan_subgroup_size(device->kmod.dev->props.gpu_id),
       /* We only support VS, FS, and CS.
        *
        * The HW may spawn VS invocations for non-existing indices, which could
@@ -1101,10 +1101,8 @@ panvk_per_arch(get_physical_device_properties)(
       .shaderRoundingModeRTZFloat16 = true,
       .shaderRoundingModeRTZFloat32 = true,
       .shaderRoundingModeRTZFloat64 = false,
-      .maxUpdateAfterBindDescriptorsInAllPools =
-         PAN_ARCH >= 9 ? UINT32_MAX : 0,
       /* VK_EXT_descriptor_indexing */
-      .maxUpdateAfterBindDescriptorsInAllPools = PAN_ARCH >= 9 ? UINT32_MAX : 0,
+      .maxUpdateAfterBindDescriptorsInAllPools = UINT32_MAX,
       .shaderUniformBufferArrayNonUniformIndexingNative = false,
       .shaderSampledImageArrayNonUniformIndexingNative = false,
       .shaderStorageBufferArrayNonUniformIndexingNative = false,
@@ -1113,21 +1111,21 @@ panvk_per_arch(get_physical_device_properties)(
       .robustBufferAccessUpdateAfterBind = PAN_ARCH >= 9,
       .quadDivergentImplicitLod = false,
       .maxPerStageDescriptorUpdateAfterBindSamplers =
-         PAN_ARCH >= 9 ? MAX_PER_STAGE_SAMPLERS : 0,
+         MAX_PER_STAGE_SAMPLERS,
       .maxPerStageDescriptorUpdateAfterBindUniformBuffers =
          PAN_ARCH >= 9 ? MAX_PER_STAGE_UNIFORM_BUFFERS : 0,
       .maxPerStageDescriptorUpdateAfterBindStorageBuffers =
          PAN_ARCH >= 9 ? MAX_PER_STAGE_STORAGE_BUFFERS : 0,
       .maxPerStageDescriptorUpdateAfterBindSampledImages =
-         PAN_ARCH >= 9 ? MAX_PER_STAGE_SAMPLED_IMAGES : 0,
+         MAX_PER_STAGE_SAMPLED_IMAGES,
       .maxPerStageDescriptorUpdateAfterBindStorageImages =
          PAN_ARCH >= 9 ? MAX_PER_STAGE_STORAGE_IMAGES : 0,
       .maxPerStageDescriptorUpdateAfterBindInputAttachments =
          PAN_ARCH >= 9 ? MAX_PER_STAGE_INPUT_ATTACHMENTS : 0,
       .maxPerStageUpdateAfterBindResources =
-         PAN_ARCH >= 9 ? MAX_PER_STAGE_RESOURCES : 0,
+         MAX_PER_STAGE_RESOURCES,
       .maxDescriptorSetUpdateAfterBindSamplers =
-         PAN_ARCH >= 9 ? MAX_PER_SET_SAMPLERS : 0,
+         MAX_PER_SET_SAMPLERS,
       .maxDescriptorSetUpdateAfterBindUniformBuffers =
          PAN_ARCH >= 9 ? MAX_PER_SET_UNIFORM_BUFFERS : 0,
       .maxDescriptorSetUpdateAfterBindUniformBuffersDynamic =
@@ -1137,7 +1135,7 @@ panvk_per_arch(get_physical_device_properties)(
       .maxDescriptorSetUpdateAfterBindStorageBuffersDynamic =
          PAN_ARCH >= 9 ? MAX_DYNAMIC_STORAGE_BUFFERS : 0,
       .maxDescriptorSetUpdateAfterBindSampledImages =
-         PAN_ARCH >= 9 ? MAX_PER_SET_SAMPLED_IMAGES : 0,
+         MAX_PER_SET_SAMPLED_IMAGES,
       .maxDescriptorSetUpdateAfterBindStorageImages =
          PAN_ARCH >= 9 ? MAX_PER_SET_STORAGE_IMAGES : 0,
       .maxDescriptorSetUpdateAfterBindInputAttachments =
@@ -1157,11 +1155,11 @@ panvk_per_arch(get_physical_device_properties)(
       .framebufferIntegerColorSampleCounts = sample_counts,
 
       /* Vulkan 1.3 properties */
-      .minSubgroupSize = pan_subgroup_size(PAN_ARCH),
-      .maxSubgroupSize = pan_subgroup_size(PAN_ARCH),
+      .minSubgroupSize = pan_subgroup_size(device->kmod.dev->props.gpu_id),
+      .maxSubgroupSize = pan_subgroup_size(device->kmod.dev->props.gpu_id),
       .maxComputeWorkgroupSubgroups =
-         device->kmod.dev->props.max_threads_per_wg /
-         pan_subgroup_size(PAN_ARCH),
+         compute_group_limit /
+         pan_subgroup_size(device->kmod.dev->props.gpu_id),
       .requiredSubgroupSizeStages = VK_SHADER_STAGE_COMPUTE_BIT,
       .maxInlineUniformBlockSize = MAX_INLINE_UNIFORM_BLOCK_SIZE,
       .maxPerStageDescriptorInlineUniformBlocks =
@@ -1337,7 +1335,7 @@ panvk_per_arch(get_physical_device_properties)(
       .shaderCoreMask = device->kmod.dev->props.shader_present,
       .shaderCoreCount = util_bitcount(device->kmod.dev->props.shader_present),
       .shaderWarpsPerCore = device->kmod.dev->props.max_threads_per_core /
-                            (pan_subgroup_size(PAN_ARCH) * 2),
+                            (pan_subgroup_size(device->kmod.dev->props.gpu_id) * 2),
 
       /* VK_ARM_scheduling_controls */
       .schedulingControlsFlags =

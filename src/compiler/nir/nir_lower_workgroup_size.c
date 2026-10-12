@@ -1098,6 +1098,7 @@ nir_lower_workgroup_size(nir_shader *shader, const uint32_t target_wg_size)
     */
    nir_lower_compute_system_values_options nlcsv_options = {
       .lower_cs_local_id_to_index = true,
+      .has_base_workgroup_id = true,
    };
    bool progress = nir_lower_compute_system_values(shader, &nlcsv_options);
 

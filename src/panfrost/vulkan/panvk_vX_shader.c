@@ -468,6 +468,16 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
 {
    struct panvk_physical_device *pdev = to_panvk_physical_device(vk_pdev);
 
+   const nir_shader_compiler_options *saved_options = nir->options;
+   nir_shader_compiler_options group_options = *saved_options;
+   bool lower_group = PAN_ARCH < 9 && nir->info.stage == MESA_SHADER_COMPUTE &&
+      nir_static_workgroup_size(nir) > pdev->kmod.dev->props.max_threads_per_wg;
+   if (lower_group) {
+      group_options.lower_cs_local_index_to_id = false;
+      group_options.has_cs_global_id = false;
+      nir->options = &group_options;
+   }
+
    /* Ensure to regroup output variables at the same location */
    if (nir->info.stage == MESA_SHADER_FRAGMENT)
       NIR_PASS(_, nir, nir_opt_vectorize_io_vars, nir_var_shader_out);
@@ -533,6 +543,14 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
             core_max_id);
 
    pan_preprocess_nir(nir, pdev->kmod.dev->props.gpu_id);
+
+   if (lower_group) {
+      NIR_PASS(_, nir, nir_lower_workgroup_size,
+               pdev->kmod.dev->props.max_threads_per_wg);
+      nir->options = saved_options;
+      NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+      NIR_PASS(_, nir, nir_lower_compute_system_values, &options);
+   }
 }
 
 static void
@@ -870,7 +888,7 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
     * pass emits get lowered by them.
     */
    NIR_PASS(_, nir, panvk_nir_lower_cooperative_matrix,
-            pan_subgroup_size(PAN_ARCH));
+            pan_subgroup_size(to_panvk_physical_device(dev->vk.physical)->kmod.dev->props.gpu_id));
 
    const nir_opt_access_options access_options = {
       .is_vulkan = true,
@@ -2526,7 +2544,8 @@ panvk_shader_get_executable_properties(
       vk_outarray_append_typed(VkPipelineExecutablePropertiesKHR, &out, props)
       {
          props->stages = mesa_to_vk_shader_stage(shader->vk.stage);
-         props->subgroupSize = pan_subgroup_size(PAN_ARCH);
+         props->subgroupSize = pan_subgroup_size(
+            to_panvk_physical_device(device->physical)->kmod.dev->props.gpu_id);
 
          if (variant_name != NULL) {
             VK_PRINT_STR(props->name, "%s %s", variant_name, stage_name);
@@ -2544,7 +2563,8 @@ panvk_shader_get_executable_properties(
                                   props)
          {
             props->stages = mesa_to_vk_shader_stage(shader->vk.stage);
-            props->subgroupSize = pan_subgroup_size(PAN_ARCH);
+            props->subgroupSize = pan_subgroup_size(
+            to_panvk_physical_device(device->physical)->kmod.dev->props.gpu_id);
 
             if (variant_name != NULL) {
                VK_PRINT_STR(props->name, "%s %s varying", variant_name,

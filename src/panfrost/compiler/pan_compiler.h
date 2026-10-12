@@ -12,6 +12,7 @@
 
 #include "compiler/nir/nir_defines.h"
 #include "compiler/shader_enums.h"
+#include "panfrost/model/pan_model.h"
 #include "util/bitset.h"
 #include "util/u_dynarray.h"
 #include "util/format/u_formats.h"
@@ -594,8 +595,11 @@ uint16_t pan_to_bytemask(unsigned bytes, unsigned mask);
  * subgroups are not supported.
  */
 static inline unsigned
-pan_subgroup_size(unsigned arch)
+pan_subgroup_size(uint64_t gpu_id)
 {
+   unsigned arch = pan_arch(gpu_id);
+   if (PAN_ARCH_MAJOR(gpu_id) == 7 && PAN_ARCH_MINOR(gpu_id) == 0)
+      return 4;
    if (arch >= 9)
       return 16;
    else if (arch >= 7)

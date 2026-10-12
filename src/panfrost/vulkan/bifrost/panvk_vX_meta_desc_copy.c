@@ -317,14 +317,7 @@ single_desc_copy(nir_builder *b, nir_def *desc_copy_idx)
    nir_pop_if(b, NULL);
 }
 
-/*
- * What the desc_copy shader does, done on the CPU while the draw is recorded. This is valid on
- * v6/v7 because a bound descriptor set cannot change before the command buffer has executed:
- * update-after-bind and update-unused-while-pending are only exposed from v9. The GPU job it
- * replaces cost about 25 us per stage per draw on the Mali-G76 (the vertex job waits on it) for
- * a few dozen bytes; measured in Minecraft, a pass of 45 draws and 270 vertices took 3.5 ms.
- * Returns false when a table, the copy map or a set is not CPU-visible, and the job is used.
- */
+/* CPU copies require stable descriptors until execution. */
 static bool
 copy_desc_on_cpu(const struct panvk_shader_desc_info *desc_info,
                  const struct panvk_descriptor_state *desc_state,
@@ -343,6 +336,11 @@ copy_desc_on_cpu(const struct panvk_shader_desc_info *desc_info,
       return false;
    for (uint32_t s = 0; s < ARRAY_SIZE(desc_state->sets); s++) {
       if (desc_state->sets[s] && !desc_state->sets[s]->descs.host)
+         return false;
+      const struct panvk_descriptor_set *set = desc_state->sets[s];
+      if ((desc_info->used_set_mask & BITFIELD_BIT(s)) && set &&
+          set->layout && (set->layout->flags &
+                         VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT))
          return false;
    }
 
@@ -429,15 +427,18 @@ panvk_meta_desc_copy_rsd(struct panvk_device *dev)
          MESA_SHADER_COMPUTE, false),
       "%s", "desc_copy");
 
-   /* We actually customize that at execution time to issue the
-    * exact number of jobs. */
-   b.shader->info.workgroup_size[0] = 1;
+   /* Fixed groups cover tables larger than one workgroup. */
+   b.shader->info.workgroup_size[0] = 64;
    b.shader->info.workgroup_size[1] = 1;
    b.shader->info.workgroup_size[2] = 1;
 
    nir_def *desc_copy_id =
       nir_channel(&b, nir_load_global_invocation_id(&b, 32), 0);
+   nir_def *copy_limit = get_input_field(
+      &b, desc_copy.limits[PANVK_BIFROST_DESC_TABLE_COUNT - 1]);
+   nir_push_if(&b, nir_ult(&b, desc_copy_id, copy_limit));
    single_desc_copy(&b, desc_copy_id);
+   nir_pop_if(&b, NULL);
    PAN_NIR_SET_BLAKE3_INTERNAL(b.shader, &key);
 
    struct pan_compile_inputs inputs = {
@@ -544,19 +545,14 @@ panvk_per_arch(meta_get_copy_desc_job)(
    if (!job_desc->gpu)
       return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
-   /* Given the per-stage max descriptors limit, we should never
-    * reach the workgroup dimension limit. */
    uint32_t copy_count =
       copy_info.desc_copy.limits[PANVK_BIFROST_DESC_TABLE_COUNT - 1];
-
-   assert(copy_count - 1 < BITFIELD_MASK(10));
-
    pan_pack_work_groups_compute(
-      pan_section_ptr(job_desc->cpu, COMPUTE_JOB, INVOCATION), 1, 1, 1,
-      copy_count, 1, 1, false, false);
+      pan_section_ptr(job_desc->cpu, COMPUTE_JOB, INVOCATION),
+      DIV_ROUND_UP(copy_count, 64), 1, 1, 64, 1, 1, false, false);
 
    pan_section_pack(job_desc->cpu, COMPUTE_JOB, PARAMETERS, cfg) {
-      cfg.job_task_split = util_logbase2_ceil(copy_count + 1) +
+      cfg.job_task_split = util_logbase2_ceil(64 + 1) +
                            util_logbase2_ceil(1 + 1) +
                            util_logbase2_ceil(1 + 1);
    }
