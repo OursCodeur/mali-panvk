@@ -24,7 +24,7 @@ void main()
         values[local] += other;
         barrier();
     }
-    uint imageIndex = 16383u + (local & 1u);
+    uint imageIndex = 16382u + (local & 1u);
 #ifdef NO_SAMPLE
     vec4 color = vec4(1, 0, 0, 1);
 #else

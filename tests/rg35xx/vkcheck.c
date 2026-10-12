@@ -110,7 +110,7 @@ int main(int argc,char **argv)
     VkSampler sampler;CHECK(vkCreateSampler(device,&si,NULL,&sampler));
     VkDescriptorSetLayoutBinding bindings[]={
         {.binding=0,.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,.descriptorCount=1,.stageFlags=VK_SHADER_STAGE_COMPUTE_BIT},
-        {.binding=1,.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,.descriptorCount=32768,.stageFlags=VK_SHADER_STAGE_COMPUTE_BIT}};
+        {.binding=1,.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,.descriptorCount=16384,.stageFlags=VK_SHADER_STAGE_COMPUTE_BIT}};
     VkDescriptorBindingFlags flags[]={0,VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT|
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT|VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT|
         VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT};
@@ -120,11 +120,11 @@ int main(int argc,char **argv)
         .pNext=&fi,.flags=VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
         .bindingCount=2,.pBindings=bindings};
     VkDescriptorSetLayout layout;CHECK(vkCreateDescriptorSetLayout(device,&li,NULL,&layout));
-    VkDescriptorPoolSize sizes[]={{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,32768}};
+    VkDescriptorPoolSize sizes[]={{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,16384}};
     VkDescriptorPoolCreateInfo pi={.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .flags=VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,.maxSets=1,.poolSizeCount=2,.pPoolSizes=sizes};
     VkDescriptorPool pool;CHECK(vkCreateDescriptorPool(device,&pi,NULL,&pool));
-    uint32_t descriptors=32768;
+    uint32_t descriptors=16384;
     VkDescriptorSetVariableDescriptorCountAllocateInfo variable={.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
         .descriptorSetCount=1,.pDescriptorCounts=&descriptors};
     VkDescriptorSetAllocateInfo dai={.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -136,7 +136,7 @@ int main(int argc,char **argv)
     VkWriteDescriptorSet writes[]={
         {.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,.dstSet=set,.dstBinding=0,.descriptorCount=1,
          .descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,.pBufferInfo=&buffer_info},
-        {.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,.dstSet=set,.dstBinding=1,.dstArrayElement=16383,
+        {.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,.dstSet=set,.dstBinding=1,.dstArrayElement=16382,
          .descriptorCount=2,.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,.pImageInfo=image_info}};
     vkUpdateDescriptorSets(device,2,writes,0,NULL);
     VkPipelineLayoutCreateInfo pli={.sType=VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,.setLayoutCount=1,.pSetLayouts=&layout};

@@ -1,0 +1,11 @@
+Device: Mali-G31 MC1; descriptors 16382/16383
+Draw pass 0: 2048 pixels, 0 cumulative errors
+Draw pass 1: 2048 pixels, 0 cumulative errors
+Device: Mali-G31 MC1; group 512 x 1
+Pipeline compiled
+Pass 0: 1024 invocations checked, 0 cumulative errors
+Pass 1: 1024 invocations checked, 0 cumulative errors
+Device: Mali-G31 MC1; group 16 x 32
+Pipeline compiled
+Pass 0: 1024 invocations checked, 0 cumulative errors
+Pass 1: 1024 invocations checked, 0 cumulative errors
