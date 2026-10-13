@@ -1,0 +1,25 @@
+RG35XX Pro, Mali G31, software Wayland WSI
+Driver Build ID: 76b554ef95fed9d1005ccefc89ca3d5a14233963
+Driver SHA256: b333ed2efcf275271e2acb19932d352daf0088aadcfa6031f4442443bdb7443d
+Engine SHA256: c983e66db8be88022f2fd24845c90ee91e445d84c11e31dc37b7e7003cc24ab7
+
+Fixed guard-facing Census and Excise room, 640x480, classic mode,
+one 512 shadow cascade, AA off, sound on, GPU 648 MHz.
+Completed Wayland presentation callbacks, clean 20-second windows:
+synchronous: 6.461843 / 6.411130 FPS, 154.755 / 155.979 ms mean
+worker:      8.661044 / 8.607660 FPS, 115.460 / 116.176 ms mean
+worker p95: 120.022 / 121.649 ms
+Both worker runs preserved the visible room and restored device state.
+These callbacks measure software presentation, not physical scanout timestamps.
+The caller's present CPU time excludes the worker's CPU work.
+
+present-check.c compiled with GCC 13, -Wall -Wextra, without warnings.
+Device test used SDL2 Wayland and the same driver, with a 60-second guardian.
+109 presents, four swapchains, five images each, alternating FIFO and MAILBOX.
+Each final frame matched all 25 framebuffer samples without another submission.
+Recreation followed extra queued presents and a GPU idle wait.
+The program destroyed swapchains, device and surface and returned zero.
+The guardian restored display, input, governor and menu and returned zero.
+
+The first probe stopped before creating a swapchain because its surface-format
+array was too short. The corrected probe queries the required array size.

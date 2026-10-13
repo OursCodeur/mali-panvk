@@ -55,6 +55,7 @@
 #include <util/timespec.h>
 #include <util/u_endian.h>
 #include <util/u_vector.h>
+#include <util/u_queue.h>
 #include <util/u_dynarray.h>
 #include <util/anon_file.h>
 #include <util/os_time.h>
@@ -161,6 +162,9 @@ struct wsi_wl_image {
    struct wsi_image base;
    struct loader_wayland_buffer wayland_buffer;
    bool busy;
+   struct util_queue_fence present_fence;
+   uint64_t queued_present_id;
+   VkPresentModeKHR queued_mode;
    int shm_fd;
    void *shm_ptr;
    unsigned shm_size;
@@ -250,6 +254,8 @@ struct wsi_wl_swapchain {
    } color;
 
    struct wsi_image_timing_request timing_request;
+   struct util_queue present_queue;
+   VkResult present_status;
 
    struct wsi_wl_image images[0];
 };
@@ -2450,7 +2456,7 @@ surface_dmabuf_feedback_done(void *data,
                                             u_vector_tail(&f->modifiers),
                                             chain->num_drm_modifiers,
                                             chain->drm_modifiers))
-      wsi_wl_surface->chain->suboptimal = true;
+      p_atomic_set(&wsi_wl_surface->chain->suboptimal, true);
 }
 
 static const struct zwp_linux_dmabuf_feedback_v1_listener
@@ -2600,7 +2606,7 @@ wsi_wl_swapchain_release_images(struct wsi_swapchain *wsi_chain,
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
    for (uint32_t i = 0; i < count; i++) {
       uint32_t index = indices[i];
-      chain->images[index].busy = false;
+      p_atomic_set(&chain->images[index].busy, false);
    }
    return VK_SUCCESS;
 }
@@ -2925,7 +2931,7 @@ wsi_wl_swapchain_acquire_next_image_explicit(struct wsi_swapchain *wsi_chain,
 
    if (result == VK_SUCCESS) {
       loader_wayland_buffer_set_flow(&chain->images[*image_index].wayland_buffer, &flow);
-      if (chain->suboptimal)
+      if (p_atomic_read(&chain->suboptimal))
          result = VK_SUBOPTIMAL_KHR;
    }
 
@@ -2955,6 +2961,9 @@ wsi_wl_swapchain_acquire_next_image_implicit(struct wsi_swapchain *wsi_chain,
    timespec_add(&end_time, &rel_timeout, &start_time);
 
    while (1) {
+      VkResult status = p_atomic_read(&chain->present_status);
+      if (status < 0)
+         return status;
       /* If we can use timestamps, we want to make sure the queue feedback
        * events are in is dispatched so we eventually get a refresh rate
        * and a vsync time to phase lock to. We don't need to wait for it
@@ -2966,25 +2975,39 @@ wsi_wl_swapchain_acquire_next_image_implicit(struct wsi_swapchain *wsi_chain,
       }
       /* Try to find a free image. */
       for (uint32_t i = 0; i < chain->base.image_count; i++) {
-         if (!chain->images[i].busy) {
+         if (!p_atomic_read(&chain->images[i].busy)) {
             /* We found a non-busy image */
             *image_index = i;
-            chain->images[i].busy = true;
+            if (chain->base.deferred_sw_present)
+               util_queue_fence_wait(&chain->images[i].present_fence);
+            p_atomic_set(&chain->images[i].busy, true);
             loader_wayland_buffer_set_flow(&chain->images[i].wayland_buffer, &flow);
-            return (chain->suboptimal ? VK_SUBOPTIMAL_KHR : VK_SUCCESS);
+            return (p_atomic_read(&chain->suboptimal) ? VK_SUBOPTIMAL_KHR : VK_SUCCESS);
          }
       }
 
-      /* Try to dispatch potential events. */
+      struct timespec wake = end_time;
+      if (chain->base.deferred_sw_present) {
+         /* Poll worker failures while waiting for image release. */
+         struct timespec now;
+         clock_gettime(CLOCK_MONOTONIC, &now);
+         timespec_add_nsec(&wake, &now, 100000000);
+         if (timespec_after(&wake, &end_time))
+            wake = end_time;
+      }
       int ret = loader_wayland_dispatch(wsi_wl_surface->display->wl_display,
-                                        wsi_wl_surface->display->queue,
-                                        &end_time);
+                                        wsi_wl_surface->display->queue, &wake);
       if (ret == -1)
          return VK_ERROR_OUT_OF_DATE_KHR;
 
       /* Check for timeout. */
-      if (ret == 0)
+      if (ret == 0) {
+         struct timespec now;
+         clock_gettime(CLOCK_MONOTONIC, &now);
+         if (chain->base.deferred_sw_present && timespec_after(&end_time, &now))
+            continue;
          return (info->timeout ? VK_TIMEOUT : VK_NOT_READY);
+      }
    }
 }
 
@@ -3109,7 +3132,7 @@ frame_handle_done(void *data, struct wl_callback *callback, uint32_t serial)
    struct wsi_wl_swapchain *chain = data;
 
    chain->frame = NULL;
-   chain->legacy_fifo_ready = true;
+   p_atomic_set(&chain->legacy_fifo_ready, true);
 
    wl_callback_destroy(callback);
 }
@@ -3234,10 +3257,10 @@ set_timestamp(struct wsi_wl_swapchain *chain,
 }
 
 static VkResult
-wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
-                               uint32_t image_index,
-                               uint64_t present_id,
-                               const VkPresentRegionKHR *damage)
+wsi_wl_present_image(struct wsi_swapchain *wsi_chain,
+                     uint32_t image_index, uint64_t present_id,
+                     const VkPresentRegionKHR *damage,
+                     VkPresentModeKHR present_mode)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
    bool timestamped = false;
@@ -3266,7 +3289,7 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
       return VK_ERROR_OUT_OF_DATE_KHR;
 
    struct wsi_wl_surface *wsi_wl_surface = chain->wsi_wl_surface;
-   bool mode_fifo = chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR;
+   bool mode_fifo = present_mode == VK_PRESENT_MODE_FIFO_KHR;
 
    if (chain->buffer_type == WSI_WL_BUFFER_SHM_MEMCPY) {
       struct wsi_wl_image *image = &chain->images[image_index];
@@ -3280,7 +3303,7 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
 
    /* For KHR_swapchain_maintenance1. We might have transitioned from FIFO to MAILBOX.
     * In this case we need to let the FIFO request complete, before presenting MAILBOX. */
-   while (!chain->legacy_fifo_ready) {
+   while (!p_atomic_read(&chain->legacy_fifo_ready)) {
       int ret = wl_display_dispatch_queue(wsi_wl_surface->display->wl_display,
                                           wsi_wl_surface->display->queue);
       if (ret < 0)
@@ -3375,16 +3398,16 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
       mtx_unlock(&chain->present_ids.lock);
    }
 
-   chain->images[image_index].busy = true;
+   p_atomic_set(&chain->images[image_index].busy, true);
 
    if (mode_fifo && !chain->fifo) {
       /* If we don't have FIFO protocol, we must fall back to legacy mechanism for throttling. */
       chain->frame = wl_surface_frame(wsi_wl_surface->wayland_surface.wrapper);
       wl_callback_add_listener(chain->frame, &frame_listener, chain);
-      chain->legacy_fifo_ready = false;
+      p_atomic_set(&chain->legacy_fifo_ready, false);
    } else {
       /* If we present MAILBOX, any subsequent presentation in FIFO can replace this image. */
-      chain->legacy_fifo_ready = true;
+      p_atomic_set(&chain->legacy_fifo_ready, true);
    }
 
    if (mode_fifo && chain->fifo) {
@@ -3474,13 +3497,60 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
 }
 
 static void
+wsi_wl_present_job(void *data, void *global, int thread_index)
+{
+   struct wsi_wl_image *image = data;
+   struct wsi_wl_swapchain *chain = global;
+   uint32_t index = image - chain->images;
+   VkResult result = p_atomic_read(&chain->present_status);
+   if (result < 0)
+      return;
+
+   result = chain->base.wsi->WaitForFences(chain->base.device, 1,
+                                          &chain->base.fences[index],
+                                          true, UINT64_MAX);
+   if (result == VK_SUCCESS) {
+      /* Present damage is optional; the copy covers every pixel. */
+      result = wsi_wl_present_image(&chain->base, index, image->queued_present_id,
+                                    NULL, image->queued_mode);
+   }
+   if (result < 0)
+      p_atomic_set(&chain->present_status, result);
+}
+
+static VkResult
+wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
+                               uint32_t image_index, uint64_t present_id,
+                               const VkPresentRegionKHR *damage)
+{
+   struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+   if (!wsi_chain->deferred_sw_present)
+      return wsi_wl_present_image(wsi_chain, image_index, present_id, damage,
+                                  wsi_chain->present_mode);
+
+   if (chain->retired)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+   VkResult result = p_atomic_read(&chain->present_status);
+   if (result < 0)
+      return result;
+
+   struct wsi_wl_image *image = &chain->images[image_index];
+   util_queue_fence_wait(&image->present_fence);
+   image->queued_present_id = present_id;
+   image->queued_mode = wsi_chain->present_mode;
+   util_queue_add_job(&chain->present_queue, image, &image->present_fence,
+                      wsi_wl_present_job, NULL, 0);
+   return VK_SUCCESS;
+}
+
+static void
 buffer_handle_release(void *data, struct wl_buffer *buffer)
 {
    struct wsi_wl_image *image = data;
 
    assert(image->wayland_buffer.buffer == buffer);
 
-   image->busy = false;
+   p_atomic_set(&image->busy, false);
 }
 
 static const struct wl_buffer_listener buffer_listener = {
@@ -3697,6 +3767,12 @@ wsi_wl_swapchain_destroy(struct wsi_swapchain *wsi_chain,
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
 
+   if (wsi_chain->deferred_sw_present) {
+      util_queue_finish(&chain->present_queue);
+      util_queue_destroy(&chain->present_queue);
+      for (uint32_t i = 0; i < chain->base.image_count; i++)
+         util_queue_fence_destroy(&chain->images[i].present_fence);
+   }
    wsi_wl_swapchain_images_free(chain);
    wsi_wl_swapchain_chain_free(chain, pAllocator);
 
@@ -3728,6 +3804,8 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       /* oldSwapchain is extern-sync, so it is not possible to call AcquireNextImage or QueuePresent
        * concurrently with this function. Next call to acquire or present will immediately
        * return OUT_OF_DATE. */
+      if (old_chain->base.deferred_sw_present)
+         util_queue_finish(&old_chain->present_queue);
       old_chain->retired = true;
    }
 
@@ -3962,7 +4040,7 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                          chain->present_ids.queue);
    }
 
-   chain->legacy_fifo_ready = true;
+   p_atomic_set(&chain->legacy_fifo_ready, true);
    struct wsi_wl_display *dpy = chain->wsi_wl_surface->display;
    if (dpy->fifo_manager) {
       chain->fifo = wp_fifo_manager_v1_get_fifo(dpy->fifo_manager,
@@ -4011,7 +4089,21 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                                  pCreateInfo, pAllocator);
       if (result != VK_SUCCESS)
          goto fail_free_wl_images;
-      chain->images[i].busy = false;
+      p_atomic_set(&chain->images[i].busy, false);
+   }
+
+   VK_FROM_HANDLE(vk_device, vk_dev, device);
+   if (wsi_device->sw && buffer_type == WSI_WL_BUFFER_SHM_MEMCPY &&
+       !chain->commit_timer && !chain->fifo && !chain->color.color_surface &&
+       !(pCreateInfo->flags & VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT) &&
+       !vk_dev->enabled_extensions.GOOGLE_display_timing) {
+      if (util_queue_init(&chain->present_queue, "wsi-present",
+                          chain->base.image_count, 1, 0, chain)) {
+         for (uint32_t i = 0; i < chain->base.image_count; i++)
+            util_queue_fence_init(&chain->images[i].present_fence);
+         chain->base.deferred_sw_present = true;
+         mesa_logi("Software presentation worker enabled");
+      }
    }
 
    chain->present_ids.valid_refresh_nsec = false;

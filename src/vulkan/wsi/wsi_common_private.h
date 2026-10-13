@@ -231,6 +231,7 @@ struct wsi_swapchain {
    VkAllocationCallbacks alloc;
    VkFence* fences;
    VkPresentModeKHR present_mode;
+   bool deferred_sw_present;
    /**
     * Timeline for presents completing according to VK_KHR_present_wait.  The
     * present should complete as close as possible (before or after!) to the
