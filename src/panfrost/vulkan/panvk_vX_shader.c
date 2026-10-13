@@ -966,7 +966,24 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
     * thus a cheaper and likely to fail check is run first. */
    if (allow_merging_workgroups ||
        nir_has_non_uniform_access(nir, lower_non_uniform_access_types)) {
-      NIR_PASS(_, nir, nir_opt_non_uniform_access);
+      /* Four-lane fragment subgroups contain one primitive. */
+      if (stage == MESA_SHADER_FRAGMENT &&
+          pan_subgroup_size(to_panvk_physical_device(dev->vk.physical)->kmod.dev->props.gpu_id) == 4) {
+         const nir_shader_compiler_options *original = nir->options;
+         nir_shader_compiler_options options = *original;
+         options.divergence_analysis_options |= nir_divergence_single_prim_per_subgroup;
+         nir->options = &options;
+         const nir_lower_subgroups_options subgroup_options = {
+            .subgroup_size = 4,
+            .ballot_bit_size = 32,
+            .ballot_components = 4,
+         };
+         NIR_PASS(_, nir, nir_opt_uniform_subgroup, &subgroup_options);
+         NIR_PASS(_, nir, nir_opt_non_uniform_access);
+         nir->options = original;
+      } else {
+         NIR_PASS(_, nir, nir_opt_non_uniform_access);
+      }
       struct nir_lower_non_uniform_access_options opts = {
          .types = lower_non_uniform_access_types,
       };
