@@ -190,7 +190,7 @@ Set these variables for the application:
 ```sh
 export VK_DRIVER_FILES="$PWD/panvk.json"
 export PANVK_DEBUG=noafbc
-export MESA_VK_WSI_DEBUG=sw
+export MESA_VK_WSI_DEBUG=sw,linear
 ```
 
 `PANVK_DEBUG=noafbc` is required for the tested setup. The isolated AFBC clear
@@ -200,10 +200,10 @@ unresolved.
 
 The stock firmware has no DRM device. Presentation used a separately built
 Weston 10.0.4 fbdev compositor with Pixman and a Wayland-capable SDL 2.32.10.
-`MESA_VK_WSI_DEBUG=sw` selects CPU-copy Wayland presentation; Vulkan rendering
-still runs on the Mali. That copy adds CPU and memory traffic to performance
-measurements. This repository does not install the compositor or replace
-firmware launchers.
+`MESA_VK_WSI_DEBUG=sw,linear` selects CPU-copy Wayland presentation with linear
+images. Vulkan rendering still runs on the Mali. Linear images remove the GPU
+image-to-buffer copy; the CPU copy to the compositor remains. This repository
+does not install the compositor or replace firmware launchers.
 
 The tested driver reports a zero timestamp period. GPU timestamp profiling
 was unavailable in Clockwork. The driver changes do not modify alpha's

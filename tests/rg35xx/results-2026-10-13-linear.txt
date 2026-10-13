@@ -1,0 +1,17 @@
+RG35XX Pro / Mali-G31 MC1 / stock kbase / software Wayland
+640x480, CPU1512MHz, GPU648MHz, sound on, vertex lighting
+Engine SHA256 5305ba0d78525405a65ae77578ff9a64eb29bccde5160473fcee8980f8d60141
+Driver SHA256 2a640f6802bc492a40d2c3a745a5154cf38720ebb6d0b508840a04279e5071c2
+Same engine/shaders/settings. Order linear,default,linear,default.
+20-second clean windows; diagnostic atom/counter windows excluded.
+label             n       p50ms      p95ms      p99ms
+rg31p-l1         256   77.770521   81.523260   82.865756
+rg31p-a1         251   79.095291   81.772729   82.583708
+rg31p-l2         259   76.960666   80.205846   81.077236
+rg31p-a2         252   78.957146   80.889794   82.023310
+Mean run medians: 79.026218 -> 77.365593ms (-1.660625ms, -2.101%).
+Both linear atom captures omit the image-to-buffer GPU copy (~2.4ms).
+CPU copy remains: default21.275, linear22.115 CPU-ms/frame.
+Completion feedback measures software presentation, not physical scanout.
+Lifecycle:109 presents,4 swapchains,FIFO/MAILBOX,100/100 physical pixels.
+Probe exit0; display/input/governor/menu restoration exit0.
