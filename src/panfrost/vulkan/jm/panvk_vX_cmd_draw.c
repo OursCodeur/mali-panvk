@@ -2977,7 +2977,6 @@ panvk_per_arch(CmdDraw)(VkCommandBuffer commandBuffer, uint32_t vertexCount,
  * a large shared vertex buffer. The fix for that is gallium panfrost's: a min/max scan of the
  * index range with a per-resource cache (pan_minmax_cache_get in pan_helpers.c). That is a
  * bounded optimisation to add on top of this; it is NOT what makes indexed draws work. */
-#define PANVK_DIRECT_INDEXED_MAX_RANGE (64u * 1024)
 
 static uint32_t
 direct_indexed_vertex_range(struct panvk_cmd_buffer *cmdbuf,
@@ -3156,11 +3155,11 @@ panvk_per_arch(CmdDrawIndexed)(VkCommandBuffer commandBuffer,
    /* That bound is every vertex the bound buffers can address, which is a disaster for a draw
     * that indexes a small part of a large shared vertex buffer: measured in Minecraft (every chunk
     * section drawn out of one 256 MB block), 4.8 million vertices shaded and 255 MB of varyings
-    * allocated PER DRAW, until the process was killed for memory within seconds. Past
-    * PANVK_DIRECT_INDEXED_MAX_RANGE, and when the draw plainly uses far less, the GPU finds the
-    * real [min, max] index first, through the same scan and helper an indexed indirect draw uses
-    * (which is what upstream does for every indexed draw), from a command written here. */
-   if (vertex_range > PANVK_DIRECT_INDEXED_MAX_RANGE && vertex_range / 4 > indexCount) {
+    * allocated PER DRAW, until the process was killed for memory within seconds. When the bound
+    * exceeds the index count, the GPU finds the real [min, max] index first, through the same
+    * scan and helper an indexed indirect draw uses (which is what upstream does for every indexed
+    * draw), from a command written here. */
+   if (vertex_range > indexCount) {
       struct pan_ptr c =
          panvk_cmd_alloc_dev_mem(cmdbuf, desc, sizeof(VkDrawIndexedIndirectCommand), 4);
       if (c.gpu) {
